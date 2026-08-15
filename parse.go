@@ -396,9 +396,14 @@ func parseEvent(line string) (Event, error) {
 		}, nil
 
 	case "togglegroup":
-		const minFields = 2
+		const minFields = 1
 		if len(fields) < minFields {
-			return nil, fmt.Errorf("expected at least %d fields, got %d fields)", minFields, len(fields))
+			return nil, fmt.Errorf(
+				"%w: expected at least 1 field, got %d; line: %q",
+				ErrUnexpectedFields,
+				len(fields),
+				line,
+			)
 		}
 
 		state, err := strconv.ParseBool(fields[0])

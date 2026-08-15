@@ -20,11 +20,12 @@ func validateSocket(path string) error {
 	return nil
 }
 
-func getDefaultSocketPath() (string, error) {
+func DefaultSocketFinder() (string, error) {
 	dir, ok := os.LookupEnv("XDG_RUNTIME_DIR")
 	if !ok {
 		return "", errors.New("'XDG_RUNTIME_DIR' not set")
 	}
+
 	instance, ok := os.LookupEnv("HYPRLAND_INSTANCE_SIGNATURE")
 	if !ok {
 		return "", errors.New("'HYPRLAND_INSTANCE_SIGNATURE' not set")
