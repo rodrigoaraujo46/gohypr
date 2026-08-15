@@ -32,8 +32,13 @@ func getDefaultSocketPath() (string, error) {
 
 	path := filepath.Join(dir, "hypr", instance, ".socket2.sock")
 	if err := validateSocket(path); err != nil {
-		return "", nil
+		return "", err
 	}
 
 	return path, nil
+}
+
+func AsType[T Event](event Event) (T, bool) {
+	e, ok := event.(T)
+	return e, ok
 }

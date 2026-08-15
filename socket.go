@@ -2,14 +2,11 @@ package gohypr
 
 import (
 	"bufio"
-	"fmt"
 	"net"
-	"strings"
 )
 
 type client struct {
 	addr net.UnixAddr
-	conn *net.UnixConn
 }
 
 func NewClient(options ...option) (*client, error) {
@@ -31,47 +28,36 @@ func NewClient(options ...option) (*client, error) {
 	return l, nil
 }
 
-func parseEvent(line string) (Event, error) {
-	line = strings.TrimSuffix(line, "\n")
-	_, _, found := strings.Cut(line, ">>")
-	if !found {
-		return nil, fmt.Errorf("failed to parse event %q", line)
-	}
-
-	return nil, nil
+type EventResult struct {
+	Event Event
+	Err   error
 }
 
-func (l *client) Listen(handler func(e Event)) error {
-	conn, err := net.DialUnix("unix", nil, &l.addr)
-	if err != nil {
-		return err
-	}
+func (l *client) Events() <-chan EventResult {
+	events := make(chan EventResult, 32)
 
-	l.conn = conn
-	defer func() { _ = l.Close() }()
+	go func() {
+		defer close(events)
 
-	for r := bufio.NewReader(conn); ; {
-		line, err := r.ReadString('\n')
+		conn, err := net.DialUnix("unix", nil, &l.addr)
 		if err != nil {
-			return err
+			events <- EventResult{Event: nil, Err: err}
+			return
 		}
 
-		event, err := parseEvent(line)
-		if err != nil {
-			return err
+		defer func() { _ = conn.Close() }()
+
+		for r := bufio.NewReader(conn); ; {
+			line, err := r.ReadString('\n')
+			if err != nil {
+				events <- EventResult{Err: err}
+				return
+			}
+
+			e, err := parseEvent(line)
+			events <- EventResult{Event: e, Err: err}
 		}
+	}()
 
-		handler(event)
-	}
-}
-
-func (l *client) Close() error {
-	if l.conn == nil {
-		return nil
-	}
-
-	err := l.conn.Close()
-	l.conn = nil
-
-	return err
+	return events
 }

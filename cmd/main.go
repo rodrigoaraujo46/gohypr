@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
+	"log/slog"
+	"time"
 
 	"github.com/rodrigoaraujo46/gohypr"
 )
@@ -13,9 +15,14 @@ func main() {
 		log.Fatal(err)
 	}
 
-	_ = l.Listen(func(e gohypr.Event) {
-		if event, ok := gohypr.AsType[gohypr.EventOpenWindow](e); ok {
-			fmt.Println(event)
+	for res := range l.Events() {
+		if res.Err != nil {
+			slog.Warn("event failed to parse", "error", res.Err)
+			continue
 		}
-	})
+
+		fmt.Printf("%+v\n", res.Event)
+	}
+
+	time.Sleep(time.Hour)
 }
